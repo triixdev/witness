@@ -21,7 +21,7 @@ REDACTIONS = [
     ("pan", re.compile(r"\b[A-Z]{5}[0-9]{4}[A-Z]\b")),
     ("aadhaar", re.compile(r"\b[2-9][0-9]{3}[ -]?[0-9]{4}[ -]?[0-9]{4}\b")),
     ("phone", re.compile(r"(?<!\d)(?:\+?91[ -]?)?[6-9][0-9]{9}(?!\d)")),
-    ("home-path", re.compile(r"(/Users|/home)/[^/\s]+|[A-Za-z]:\\Users\\[^\\\s]+")),
+    ("home-path", re.compile(r"(?:(/Users|/home)/[^/\s]+)|(?:([A-Za-z]:\\+Users\\+)[^\\\s]+)")),
 ]
 
 SECRET_RULES = {"private-key", "aws-key", "github-token", "slack-token", "api-key", "jwt", "bearer", "secret-assign"}
@@ -35,7 +35,7 @@ def redact(text):
             if name == "secret-assign":
                 return m.group(1) + "=[redacted]"
             if name == "home-path":
-                return (m.group(1) + "/[user]") if m.group(1) else m.group(0)[:9] + "[user]"
+                return (m.group(1) + "/[user]") if m.group(1) else m.group(2) + "[user]"
             return "[redacted:%s]" % name
         text = rx.sub(sub, text)
     return text, sorted(hit)

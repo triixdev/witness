@@ -23,6 +23,9 @@ class T(unittest.TestCase):
         self.assertNotIn("hp", w.to_chat(r))
         p = w._parse_chat(w.to_chat(r))
         self.assertEqual(w.verify_receipt(p, self.d)[0], "UNCHECKABLE")
+    def test_redacts_doubled_backslash_paths(self):
+        out, hit = w.redact("name='C:\\\\Users\\\\hp\\\\AppData\\\\x.py' and C:\\Users\\hp\\y")
+        self.assertNotIn("hp", out); self.assertIn("home-path", hit)
     def test_holds(self):
         r = w.make_receipt(PY + " a.py", "prints", self.d)
         self.assertEqual(w.verify_receipt(r, self.d)[0], "HOLDS")
