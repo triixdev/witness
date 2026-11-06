@@ -1,0 +1,19 @@
+:root{--bg:#efe9dd;--ink:#1d2330;--mute:#5b5f6b;--rule:#c9bfa9;--accent:#8a2d1f;--paper:#e6dfd0}
+@media (prefers-color-scheme:dark){:root{--bg:#1b1d22;--ink:#e8e2d4;--mute:#a39e90;--rule:#3b3d44;--accent:#e08a6f;--paper:#24262c}}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;color:var(--ink);font:18px/1.6 Charter,"Iowan Old Style","Palatino Linotype",Georgia,serif;
+padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+main{max-width:42rem;margin:0 auto;padding:3rem 1.25rem 4rem}
+h1{font-size:2.4rem;line-height:1.15;margin:0 0 1rem;font-weight:700}
+h2{font-size:1.25rem;margin:2.75rem 0 .5rem;border-top:1px solid var(--rule);padding-top:1rem}
+p,li{max-width:38rem}
+a{color:var(--accent)}
+dl{margin:0}dt{font-weight:700;margin-top:1rem;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.95rem}
+dd{margin:.1rem 0 0}
+pre{background:var(--paper);border:1px solid var(--rule);padding:1rem;overflow-x:auto;font:.85rem/1.5 ui-monospace,Menlo,Consolas,monospace;margin:1rem 0}
+figcaption{color:var(--mute);font-size:.9rem}
+figure{margin:1.5rem 0}
+nav{display:flex;gap:1.25rem;flex-wrap:wrap;border-bottom:1px solid var(--rule);padding-bottom:.75rem;margin-bottom:2.5rem;font-size:.95rem}
+footer{color:var(--mute);font-size:.9rem;margin-top:3rem;border-top:1px solid var(--rule);padding-top:1rem}
+.lede{font-size:1.2rem}

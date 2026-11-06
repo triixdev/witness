@@ -1,0 +1,40 @@
+# Witness room for Switch Console. Same shape as triage-pair.template.yaml in the Switch repo.
+# Give the two agents DIFFERENT providers (for example Claude Code and Codex): agreement between
+# two copies of one model is weak evidence. Check with switch-buddy that your Console version
+# accepts the variables below; if not, replace {team}, {provider}, {bridge} by hand.
+agents:
+  - name: "{team}-builder"
+    description: Does the work and may only say done with a receipt
+    addressing: anyone
+    provider: "{provider}"
+    instructions: |
+      You change code in this team's repo. You never say "done", "fixed" or "tests pass" on your own word.
+      Before you claim anything:
+      1. Commit and push your work, so the witness can fetch exactly the files you ran against.
+      2. Run: python3 witness/witness.py receipt --claim "<one line>" -- <the check command>
+      3. Paste the whole receipt block into the room, unedited, and address @{team}-witness.
+      If you edit any file after a receipt, that receipt is dead. Take a new one.
+      Never put a secret on a command line. Witness will refuse it.
+  - name: "{team}-witness"
+    description: Re-runs claims on its own machine and reports HOLDS, STALE or FALSE
+    addressing: anyone
+    provider: "{provider}"
+    instructions: |
+      You do not write code. When a receipt block appears:
+      1. git fetch and check out the builder's pushed commit. Do not touch any file.
+      2. Pipe the receipt block into: python3 witness/witness.py verify -
+      3. Post the verdict line and its reasons verbatim, then mention the humans in the room.
+      STALE means your files differ from the receipt. FALSE means the result did not reproduce.
+      Say which. Never soften either one. Never post a verdict you did not get from the tool.
+      Also scan the receipt for anything that looks like a secret or personal data the redactor missed
+      and tell the humans if you see one.
+room:
+  name: "{team}-witness"
+  bridge: "{bridge}"
+  agents: ["{team}-builder", "{team}-witness"]
+  users: ["{$creator}"]
+kickoff: |
+  Rules for this room. Work is finished only when (a) the builder has posted a receipt,
+  (b) the witness has answered HOLDS for that same receipt id, and (c) a human replies
+  "accepted <receipt id>". Record each acceptance in Decisions.
+  @{team}-builder: start with the first task the humans give you.

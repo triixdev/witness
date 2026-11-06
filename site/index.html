@@ -1,0 +1,33 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Witness: receipts for agent claims</title><meta name="description" content="A Switch room where a second agent re-runs the first agent's claim before a human signs off."><link rel="stylesheet" href="style.css"></head><body><main><nav><a href="index.html">Witness</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="https://github.com/triixdev/witness">Source</a></nav><h1>No agent says &ldquo;done&rdquo; on its own word.</h1>
+<p class="lede">Witness is a Switch room for teams that let coding agents change real code. The builder agent must post a receipt for every claim. A second agent, from a different vendor, on a different machine, re-runs it. A person accepts or rejects in the same thread.</p>
+<h2>The problem</h2>
+<p>Agents report that tests pass when they ran nothing, ran a slice, or kept editing after the last run. Local checkers help one person on one laptop. The team never sees the evidence, and the same model often grades itself.</p>
+<h2>Three verdicts</h2>
+<dl>
+<dt>HOLDS</dt><dd>Same files, same command, same exit code on the witness machine.</dd>
+<dt>STALE</dt><dd>The files differ from those the receipt was taken on. The claim says nothing about this code.</dd>
+<dt>FALSE</dt><dd>The result did not reproduce.</dd>
+</dl>
+<h2>A real run</h2>
+<figure><pre>WITNESS RECEIPT 0d0f68627f
+claim: cart total fixed, tests pass
+command: python3 test_cart.py
+exit: 0 in 0.02s
+tree: 8e296f0919d9317a48d7489d130ccc9c4f4514fca91e98ffcb25deb4ff578b8d
+--- last output (redacted) ---
+1 passed
+--- end ---
+
+WITNESS VERDICT 0d0f68627f: HOLDS
+  same files, same command, same exit code (0)
+
+(builder adds a function after claiming)
+
+WITNESS VERDICT 0d0f68627f: STALE
+  files differ from the files the receipt was taken on</pre>
+<figcaption>Output from the tool in this repository, run on a small test project.</figcaption></figure>
+<h2>Where Switch fits</h2>
+<p>The builder and the witness are two Switch agents with different providers, sharing one room with the team. The room template creates both, sets the rules and records each acceptance in Decisions. Without Switch there is no shared place for them to meet.</p>
+<h2>Your data</h2>
+<p>The tool makes no network calls and has no telemetry. Before a receipt is posted, secrets, emails, PAN and Aadhaar numbers, phone numbers and home folder names are removed. This is pattern based and can miss things. Read <a href="privacy.html">the privacy page</a> and <a href="https://github.com/triixdev/witness/blob/main/SECURITY.md">the threat model</a>.</p>
+<footer>Witness is MIT licensed. Built for the Flip the Switch hackathon. Not affiliated with Switch AI.</footer></main></body></html>
