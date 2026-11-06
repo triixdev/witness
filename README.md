@@ -39,7 +39,7 @@ Not solved yet: a check that is itself too weak (a test with no assertions). See
 
 ## Run it
 
-Needs Python 3.9 or newer. No packages.
+Needs Python 3.9 or newer. No packages. On Windows use `python` instead of `python3`.
 
     python3 -m unittest discover -s tests
     python3 witness/witness.py receipt --claim "unit tests pass" -- python3 -m unittest
