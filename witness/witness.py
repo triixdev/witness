@@ -21,8 +21,10 @@ REDACTIONS = [
     ("pan", re.compile(r"\b[A-Z]{5}[0-9]{4}[A-Z]\b")),
     ("aadhaar", re.compile(r"\b[2-9][0-9]{3}[ -]?[0-9]{4}[ -]?[0-9]{4}\b")),
     ("phone", re.compile(r"(?<!\d)(?:\+?91[ -]?)?[6-9][0-9]{9}(?!\d)")),
-    ("home-path", re.compile(r"(/Users|/home)/[^/\s]+")),
+    ("home-path", re.compile(r"(/Users|/home)/[^/\s]+|[A-Za-z]:\\Users\\[^\\\s]+")),
 ]
+
+SECRET_RULES = {"private-key", "aws-key", "github-token", "slack-token", "api-key", "jwt", "bearer", "secret-assign"}
 
 def redact(text):
     """Return (clean_text, sorted list of rule names that fired)."""
@@ -33,7 +35,7 @@ def redact(text):
             if name == "secret-assign":
                 return m.group(1) + "=[redacted]"
             if name == "home-path":
-                return m.group(1) + "/[user]"
+                return (m.group(1) + "/[user]") if m.group(1) else m.group(0)[:9] + "[user]"
             return "[redacted:%s]" % name
         text = rx.sub(sub, text)
     return text, sorted(hit)
@@ -74,6 +76,7 @@ def run(command, root, timeout):
 
 def make_receipt(command, claim, root=".", timeout=300):
     _, hit = redact(command)
+    hit = [h for h in hit if h in SECRET_RULES]
     if hit:
         sys.exit("refused: the command itself contains %s. Pass secrets by environment variable, not on the command line." % ", ".join(hit))
     fp = fingerprint(root)
@@ -84,11 +87,14 @@ def make_receipt(command, claim, root=".", timeout=300):
             "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
 
 def to_chat(r):
+    r = dict(r, command=redact(r["command"])[0], claim=redact(r["claim"])[0])
     return ("WITNESS RECEIPT %(id)s\nclaim: %(claim)s\ncommand: %(command)s\nexit: %(exit_code)s in %(seconds)ss\n"
             "tree: %(tree)s\n--- last output (redacted) ---\n%(output_tail)s\n--- end ---" % r)
 
 def verify_receipt(r, root=".", timeout=300):
-    """Return (verdict, reasons). Verdicts: HOLDS, STALE, FALSE."""
+    """Return (verdict, reasons). Verdicts: HOLDS, STALE, FALSE, UNCHECKABLE."""
+    if "[user]" in r["command"] or "[redacted" in r["command"]:
+        return "UNCHECKABLE", ["the command was redacted in the receipt; use relative commands such as 'python -m unittest', not full paths"]
     now = fingerprint(root)
     if now != r["tree"]:
         return "STALE", ["files here differ from the files the receipt was taken on (tree %s vs %s)" % (now[:12], r["tree"][:12])]
