@@ -26,6 +26,16 @@ class T(unittest.TestCase):
     def test_redacts_doubled_backslash_paths(self):
         out, hit = w.redact("name='C:\\\\Users\\\\hp\\\\AppData\\\\x.py' and C:\\Users\\hp\\y")
         self.assertNotIn("hp", out); self.assertIn("home-path", hit)
+    def test_line_endings_do_not_cause_stale(self):
+        d2 = tempfile.mkdtemp()
+        open(os.path.join(d2, "a.py"), "wb").write(b"print(1)\r\n")
+        open(os.path.join(self.d, "a.py"), "wb").write(b"print(1)\n")
+        self.assertEqual(w.fingerprint(self.d), w.fingerprint(d2))
+    def test_stale_names_the_differing_file(self):
+        r = w.make_receipt(PY + " a.py", "prints", self.d)
+        open(os.path.join(self.d, "b.py"), "wb").write(b"x = 1\n")
+        verdict, why = w.verify_receipt(r, self.d)
+        self.assertEqual(verdict, "STALE"); self.assertIn("b.py", " ".join(why))
     def test_holds(self):
         r = w.make_receipt(PY + " a.py", "prints", self.d)
         self.assertEqual(w.verify_receipt(r, self.d)[0], "HOLDS")

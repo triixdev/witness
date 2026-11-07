@@ -53,17 +53,30 @@ def _files(root):
     # witness's own receipts and bytecode must not change the fingerprint
     return sorted(p for p in found if not p.startswith(".witness/") and not p.endswith(".pyc"))
 
-def fingerprint(root="."):
-    """Hash of every non-ignored file's path and content. Changes if any file changes."""
-    h = hashlib.sha256()
+def file_hashes(root="."):
+    """Map of path -> hash of content. Line endings are normalised (CRLF to LF) for text files,
+    because git rewrites them differently on different machines and that is not a real change."""
+    out = {}
     for rel in _files(root):
         p = os.path.join(root, rel)
         if not os.path.isfile(p):
             continue
-        h.update(rel.encode() + b"\0")
         with open(p, "rb") as f:
-            h.update(hashlib.sha256(f.read()).digest())
+            data = f.read()
+        if b"\0" not in data[:8000]:
+            data = data.replace(b"\r\n", b"\n")
+        out[rel.replace(os.sep, "/")] = hashlib.sha256(data).hexdigest()
+    return out
+
+def _combine(files):
+    h = hashlib.sha256()
+    for rel in sorted(files):
+        h.update(rel.encode() + b"\0" + files[rel].encode())
     return h.hexdigest()
+
+def fingerprint(root="."):
+    """Hash of every non-ignored file's path and content. Changes if any file changes."""
+    return _combine(file_hashes(root))
 
 def run(command, root, timeout):
     t = time.time()
@@ -79,11 +92,12 @@ def make_receipt(command, claim, root=".", timeout=300):
     hit = [h for h in hit if h in SECRET_RULES]
     if hit:
         sys.exit("refused: the command itself contains %s. Pass secrets by environment variable, not on the command line." % ", ".join(hit))
-    fp = fingerprint(root)
+    files = file_hashes(root)
+    fp = _combine(files)
     code, out, secs = run(command, root, timeout)
     tail, _ = redact("\n".join(out.splitlines()[-25:]))
     return {"version": 1, "id": uuid.uuid4().hex[:10], "claim": claim, "command": command,
-            "exit_code": code, "seconds": secs, "tree": fp, "output_tail": tail,
+            "exit_code": code, "seconds": secs, "tree": fp, "files": files, "output_tail": tail,
             "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
 
 def to_chat(r):
@@ -95,9 +109,16 @@ def verify_receipt(r, root=".", timeout=300):
     """Return (verdict, reasons). Verdicts: HOLDS, STALE, FALSE, UNCHECKABLE."""
     if "[user]" in r["command"] or "[redacted" in r["command"]:
         return "UNCHECKABLE", ["the command was redacted in the receipt; use relative commands such as 'python -m unittest', not full paths"]
-    now = fingerprint(root)
+    now_files = file_hashes(root)
+    now = _combine(now_files)
     if now != r["tree"]:
-        return "STALE", ["files here differ from the files the receipt was taken on (tree %s vs %s)" % (now[:12], r["tree"][:12])]
+        why = ["files here differ from the files the receipt was taken on (tree %s vs %s)" % (now[:12], r["tree"][:12])]
+        if "files" in r:
+            diff = sorted(k for k in set(now_files) | set(r["files"]) if now_files.get(k) != r["files"].get(k))
+            why.append("differing files: " + ", ".join(diff[:8]) + (" ..." if len(diff) > 8 else ""))
+        else:
+            why.append("run verify on the receipt .json file instead of the chat block to see which files differ")
+        return "STALE", why
     code, out, _ = run(r["command"], root, timeout)
     if code != r["exit_code"]:
         return "FALSE", ["exit code was %s on the receipt, %s on re-run" % (r["exit_code"], code)]
