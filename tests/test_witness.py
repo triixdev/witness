@@ -15,17 +15,17 @@ class T(unittest.TestCase):
             self.assertNotIn(bad, out)
         self.assertTrue({"aws-key", "email", "pan", "phone", "secret-assign", "home-path"} <= set(hit))
     def test_redacts_windows_home(self):
-        out, hit = w.redact(r"File C:\Users\hp\AppData\x.py failed")
-        self.assertNotIn("hp", out); self.assertIn("home-path", hit)
+        out, hit = w.redact(r"File C:\Users\dana\AppData\x.py failed")
+        self.assertNotIn("dana", out); self.assertIn("home-path", hit)
     def test_home_path_in_command_not_refused_but_redacted_in_chat(self):
-        cmd = r"C:\Users\hp\python.exe a.py"
+        cmd = r"C:\Users\dana\python.exe a.py"
         r = {"id": "x", "claim": "c", "command": cmd, "exit_code": 0, "seconds": 0.1, "tree": "t", "output_tail": ""}
-        self.assertNotIn("hp", w.to_chat(r))
+        self.assertNotIn("dana", w.to_chat(r))
         p = w._parse_chat(w.to_chat(r))
         self.assertEqual(w.verify_receipt(p, self.d)[0], "UNCHECKABLE")
     def test_redacts_doubled_backslash_paths(self):
-        out, hit = w.redact("name='C:\\\\Users\\\\hp\\\\AppData\\\\x.py' and C:\\Users\\hp\\y")
-        self.assertNotIn("hp", out); self.assertIn("home-path", hit)
+        out, hit = w.redact("name='C:\\\\Users\\\\dana\\\\AppData\\\\x.py' and C:\\Users\\dana\\y")
+        self.assertNotIn("dana", out); self.assertIn("home-path", hit)
     def test_line_endings_do_not_cause_stale(self):
         d2 = tempfile.mkdtemp()
         open(os.path.join(d2, "a.py"), "wb").write(b"print(1)\r\n")
